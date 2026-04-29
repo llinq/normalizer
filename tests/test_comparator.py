@@ -231,6 +231,76 @@ class TestFormulaComparison:
         )
         assert not result.has_divergences
 
+    def test_formula_at_different_column_positions_no_mismatch(self):
+        """Formulas with identical structure at different column positions compare equal.
+
+        Template column C (3) has =D2&E2 (refs at C+1=D, C+2=E → offsets +1, +2).
+        User column Q (17) has =R2&S2 (refs at Q+1=R, Q+2=S → offsets +1, +2).
+        Both express the same pattern: concatenate the next two columns.
+        """
+        # Template: headers at cols 1-5 (A-E)
+        template_headers = ["ID", "Name", "Combined", "First", "Last"]
+        template_data = [template_headers, [1, "x", "=D2&E2", "a", "b"]]
+
+        # User: 14 filler Nones so that 'Combined' lands at col 17 (Q),
+        # 'First' at R (18), 'Last' at S (19).
+        # Formula =R2&S2 in col Q: R=18=Q+1, S=19=Q+2 → offsets +1, +2 ✓
+        filler_count = 14
+        user_headers = ["ID", "Name"] + [None] * filler_count + ["Combined", "First", "Last"]
+        user_row = [1, "x"] + [None] * filler_count + ["=R2&S2", "a", "b"]
+        user_data = [user_headers, user_row]
+
+        result = _compare_from_buffers(
+            make_workbook({"Sheet1": template_data}),
+            make_workbook({"Sheet1": user_data}),
+            check_formulas=True,
+            check_data_types=False,
+        )
+        mismatches = result.by_type(DivergenceType.FORMULA_MISMATCH)
+        assert len(mismatches) == 0
+
+
+# ---------------------------------------------------------------------------
+# Empty-row tests
+# ---------------------------------------------------------------------------
+
+class TestEmptyRowSkipping:
+    def test_empty_rows_not_reported_as_formula_missing(self):
+        """Completely empty template rows are silently skipped."""
+        template = {"Sheet1": [["A", "Formula"],
+                                [1, "=A2*2"],
+                                [None, None],   # empty row
+                                [3, "=A4*2"]]}
+        user = {"Sheet1": [["A", "Formula"],
+                            [1, "=A2*2"],
+                            [None, None],
+                            [3, "=A4*2"]]}
+        result = _compare_from_buffers(
+            make_workbook(template),
+            make_workbook(user),
+            check_formulas=True,
+            check_data_types=False,
+        )
+        assert not result.has_divergences
+
+    def test_empty_template_row_not_compared_to_user_formula(self):
+        """A completely empty template row is skipped even if user has data there."""
+        template = {"Sheet1": [["A", "B"],
+                                [1, "=A2"],
+                                [None, None]]}
+        user = {"Sheet1": [["A", "B"],
+                            [1, "=A2"],
+                            [5, "=A3*3"]]}  # user has formula on empty-template row
+        result = _compare_from_buffers(
+            make_workbook(template),
+            make_workbook(user),
+            check_formulas=True,
+            check_data_types=False,
+        )
+        # The empty template row should be ignored – no UNEXPECTED_FORMULA reported
+        unexpected = result.by_type(DivergenceType.UNEXPECTED_FORMULA)
+        assert len(unexpected) == 0
+
 
 # ---------------------------------------------------------------------------
 # Data-type tests
@@ -259,6 +329,19 @@ class TestDataTypeComparison:
             check_data_types=True,
         )
         assert not result.has_divergences
+
+    def test_check_data_types_disabled_by_default(self):
+        """compare() must not report type divergences when check_data_types is not given."""
+        template = {"Sheet1": [["Code", "Amount"], ["ABC123", 100.0]]}
+        user = {"Sheet1": [["Code", "Amount"], [999, "not a number"]]}
+        result = _compare_from_buffers(
+            make_workbook(template),
+            make_workbook(user),
+            check_formulas=False,
+            # check_data_types intentionally omitted – should default to False
+        )
+        mismatches = result.by_type(DivergenceType.DATA_TYPE_MISMATCH)
+        assert len(mismatches) == 0
 
 
 # ---------------------------------------------------------------------------

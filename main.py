@@ -5,7 +5,7 @@ Usage
 -----
     python main.py template.xlsx user.xlsx
     python main.py template.xlsx user.xlsx --header-row 2 --output result.json
-    python main.py template.xlsx user.xlsx --no-formulas --no-types
+    python main.py template.xlsx user.xlsx --no-formulas --check-types
 """
 
 from __future__ import annotations
@@ -39,10 +39,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Skip formula comparison.",
     )
     parser.add_argument(
-        "--no-types",
+        "--check-types",
         action="store_true",
         default=False,
-        help="Skip data-type comparison.",
+        help="Enable data-type comparison (disabled by default).",
     )
     parser.add_argument(
         "--max-formula-rows",
@@ -87,7 +87,7 @@ def main(argv: list[str] | None = None) -> int:
         user_path=args.user_file,
         header_row=args.header_row,
         check_formulas=not args.no_formulas,
-        check_data_types=not args.no_types,
+        check_data_types=args.check_types,
         max_formula_rows=args.max_formula_rows,
     )
 

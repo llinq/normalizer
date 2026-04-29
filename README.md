@@ -43,8 +43,9 @@ python main.py template.xlsx user_file.xlsx --output result.json
 # Use a different header row (e.g. row 2)
 python main.py template.xlsx user_file.xlsx --header-row 2
 
-# Skip formula or data-type checks
-python main.py template.xlsx user_file.xlsx --no-formulas --no-types
+# Skip formula checks or enable data-type checks
+python main.py template.xlsx user_file.xlsx --no-formulas
+python main.py template.xlsx user_file.xlsx --check-types
 
 # Limit formula check to first 500 data rows (faster for large sheets)
 python main.py template.xlsx user_file.xlsx --max-formula-rows 500

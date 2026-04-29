@@ -21,7 +21,7 @@ def compare(
     user_path: str | Path,
     header_row: int = 1,
     check_formulas: bool = True,
-    check_data_types: bool = True,
+    check_data_types: bool = False,
     max_formula_rows: int | None = None,
 ) -> ComparisonResult:
     """Compare *template* spreadsheet against *user* spreadsheet.
@@ -39,7 +39,7 @@ def compare(
         against the corresponding cells in the user workbook.
     check_data_types:
         When True, the data type of non-formula cells in the template is
-        compared against the user workbook.
+        compared against the user workbook.  Defaults to False.
     max_formula_rows:
         If given, formula checking stops after this many data rows per sheet
         (useful for very large sheets).  ``None`` means check all rows.
@@ -209,6 +209,13 @@ def _compare_cells(
         rows_to_check = range(data_start, min(tmpl_max_row, data_start + max_formula_rows - 1) + 1)
 
     for row in rows_to_check:
+        # Skip completely empty rows (all template cells in mapped columns are None)
+        if all(
+            tmpl_sheet.cell(row=row, column=tc).value is None
+            for tc in col_mapping
+        ):
+            continue
+
         for tmpl_col, user_col in col_mapping.items():
             tmpl_cell = tmpl_sheet.cell(row=row, column=tmpl_col)
             tmpl_addr = cell_address(row, tmpl_col)
@@ -241,8 +248,8 @@ def _compare_cells(
                     continue
 
                 if tmpl_is_formula and user_is_formula:
-                    tmpl_norm = normalize_formula(tmpl_cell.value)
-                    user_norm = normalize_formula(user_cell.value)
+                    tmpl_norm = normalize_formula(tmpl_cell.value, current_col=tmpl_col)
+                    user_norm = normalize_formula(user_cell.value, current_col=user_col)
                     if tmpl_norm != user_norm:
                         result.divergences.append(
                             Divergence(
