@@ -231,7 +231,7 @@ def _compare_cells(
             user_is_formula = is_formula(user_cell)
 
             if check_formulas:
-                if tmpl_is_formula and not user_is_formula:
+                if tmpl_is_formula and not user_is_formula and user_cell.value is not None:
                     result.divergences.append(
                         Divergence(
                             type=DivergenceType.FORMULA_MISSING,

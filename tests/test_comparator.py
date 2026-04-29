@@ -331,9 +331,38 @@ class TestEmptyRowSkipping:
         assert len(unexpected) == 0
 
 
-# ---------------------------------------------------------------------------
-# Data-type tests
-# ---------------------------------------------------------------------------
+    def test_formula_missing_not_flagged_when_user_row_empty(self):
+        """FORMULA_MISSING must not fire when the user cell is None.
+
+        Real-world scenario: the template has a pre-filled formula in every row
+        up to a large maximum (e.g. row 4358). The user only filled a few rows,
+        leaving the rest completely empty. Reporting FORMULA_MISSING for every
+        unpopulated template row is a false positive.
+        """
+        # Template: 3 rows with formulas in column B
+        template = {
+            "Sheet1": [
+                ["A", "B"],
+                [1, "=IF(A2=\"\",\"\",A2*2)"],
+                [None, "=IF(A3=\"\",\"\",A3*2)"],  # row 3 – A is empty, B has guard formula
+            ]
+        }
+        # User only filled row 2; row 3 is entirely empty
+        user = {
+            "Sheet1": [
+                ["A", "B"],
+                [1, "=IF(A2=\"\",\"\",A2*2)"],
+                [None, None],
+            ]
+        }
+        result = _compare_from_buffers(
+            make_workbook(template),
+            make_workbook(user),
+            check_formulas=True,
+            check_data_types=False,
+        )
+        missing = result.by_type(DivergenceType.FORMULA_MISSING)
+        assert len(missing) == 0
 
 class TestDataTypeComparison:
     def test_type_mismatch(self):
