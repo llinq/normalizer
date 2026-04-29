@@ -51,11 +51,17 @@ def normalize_formula(formula: str) -> str:
     ``=SUM(B2:B50)``).  Column references and function names are preserved
     so that structural changes (wrong column, missing function, etc.) are
     still detected.
+
+    Single quotes around sheet names (added by Excel when a sheet name starts
+    with a digit or contains special characters) are also stripped so that
+    ``Sheet1!A1`` and ``'Sheet1'!A1`` compare as equal.
     """
     if not formula:
         return formula
     # Upper-case for case-insensitive comparison
     formula = formula.upper()
+    # Strip single quotes around sheet names (e.g. '1_Sheet'!A1 → 1_SHEET!A1)
+    formula = re.sub(r"'([^']+)'!", r"\1!", formula)
     # Replace row numbers inside cell references (e.g. B12 → B#, $B$12 → $B$#)
     formula = re.sub(r"(\$?[A-Z]+)\$?[0-9]+", r"\1#", formula)
     return formula

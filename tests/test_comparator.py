@@ -197,6 +197,27 @@ class TestFormulaComparison:
         )
         assert not result.has_divergences
 
+    def test_sheet_name_quotes_ignored(self):
+        """Formulas that differ only in single-quoted sheet names are considered equal.
+
+        Excel automatically wraps sheet names that start with a digit (or contain
+        special characters) in single quotes when writing cross-sheet references.
+        The template may store the unquoted form while the user file uses the
+        quoted form, or vice-versa – both should be treated as identical.
+        """
+        template = {"Sheet1": [["A", "Result"],
+                                [1, "=IF(1_DadosCadastrais!$B$38=\"\",\"\",1_DadosCadastrais!$B$38)"]]}
+        user = {"Sheet1": [["A", "Result"],
+                            [1, "=IF('1_DadosCadastrais'!$B$38=\"\",\"\",'1_DadosCadastrais'!$B$38)"]]}
+        result = _compare_from_buffers(
+            make_workbook(template),
+            make_workbook(user),
+            check_formulas=True,
+            check_data_types=False,
+        )
+        mismatches = result.by_type(DivergenceType.FORMULA_MISMATCH)
+        assert len(mismatches) == 0
+
     def test_formula_row_number_difference_no_mismatch(self):
         """Formulas that differ only in row numbers are considered structurally identical."""
         template = {"Sheet1": [["A", "B", "Total"], [1, 2, "=A2+B2"], [3, 4, "=A3+B3"]]}
