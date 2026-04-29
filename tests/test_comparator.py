@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import os
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -18,8 +20,6 @@ from tests.fixtures import make_workbook
 
 def _compare_from_buffers(template_data, user_data, **kwargs):
     """Write fixtures to tmp files and run compare()."""
-    import tempfile, os
-
     with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as f:
         f.write(template_data.read())
         tmpl_path = f.name
