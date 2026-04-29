@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "normalizer"
+version = "0.1.0"
+description = "Fiscal spreadsheet comparison and normalisation tool"
+requires-python = ">=3.10"
+dependencies = ["openpyxl>=3.1.0"]
+
+[project.scripts]
+normalizer = "main:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["normalizer*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
