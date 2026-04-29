@@ -248,8 +248,8 @@ def _compare_cells(
                     continue
 
                 if tmpl_is_formula and user_is_formula:
-                    tmpl_norm = normalize_formula(tmpl_cell.value, current_col=tmpl_col)
-                    user_norm = normalize_formula(user_cell.value, current_col=user_col)
+                    tmpl_norm = normalize_formula(tmpl_cell.value, current_col=tmpl_col, current_row=row)
+                    user_norm = normalize_formula(user_cell.value, current_col=user_col, current_row=row)
                     if tmpl_norm != user_norm:
                         result.divergences.append(
                             Divergence(

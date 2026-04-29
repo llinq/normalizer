@@ -219,9 +219,8 @@ class TestFormulaComparison:
         assert len(mismatches) == 0
 
     def test_formula_row_number_difference_no_mismatch(self):
-        """Formulas that differ only in row numbers are considered structurally identical."""
+        """Same-structure formula at different rows compares equal (same relative refs)."""
         template = {"Sheet1": [["A", "B", "Total"], [1, 2, "=A2+B2"], [3, 4, "=A3+B3"]]}
-        # user uses slightly different row numbers (still structurally the same pattern)
         user = {"Sheet1": [["A", "B", "Total"], [1, 2, "=A2+B2"], [3, 4, "=A3+B3"]]}
         result = _compare_from_buffers(
             make_workbook(template),
@@ -230,6 +229,27 @@ class TestFormulaComparison:
             check_data_types=False,
         )
         assert not result.has_divergences
+
+    def test_formula_row_ref_change_detected(self):
+        """Changing the row a formula references (e.g. A11→A10 in row 11) must be detected.
+
+        Real-world scenario: user accidentally edits a row-guard formula from
+        =SE(A11="";...;PROCV(E11;...)) to =SE(A10="";...;PROCV(E11;...)).
+        The A11→A10 change shifts the relative row offset from [0] to [-1] and
+        must trigger a FORMULA_MISMATCH.
+        """
+        # Row 2 in column C: template references A2 (same row), user changed to A1
+        template = {"Sheet1": [["A", "B", "C"], ["x", "y", '=IF(A2="","",B2)']]}
+        user = {"Sheet1": [["A", "B", "C"], ["x", "y", '=IF(A1="","",B2)']]}
+        result = _compare_from_buffers(
+            make_workbook(template),
+            make_workbook(user),
+            check_formulas=True,
+            check_data_types=False,
+        )
+        mismatches = result.by_type(DivergenceType.FORMULA_MISMATCH)
+        assert len(mismatches) == 1
+        assert mismatches[0].location == "C2"
 
     def test_formula_at_different_column_positions_no_mismatch(self):
         """Formulas with identical structure at different column positions compare equal.

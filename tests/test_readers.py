@@ -127,3 +127,26 @@ class TestNormalizeFormula:
         result = normalize_formula("='1_Sheet'!$B$38", current_col=3)
         assert "[" not in result
         assert "$B#" in result
+
+    def test_relative_row_same_row(self):
+        """Row reference matching current_row has offset 0."""
+        # Cell C5 containing =A5: row 5 == current_row → [+0]
+        result = normalize_formula("=A5", current_col=3, current_row=5)
+        assert result == "=[-2][+0]"
+
+    def test_relative_row_row_above(self):
+        """Row reference one above current_row has offset -1."""
+        result = normalize_formula("=A4", current_col=3, current_row=5)
+        assert result == "=[-2][-1]"
+
+    def test_relative_row_distinguishes_offsets(self):
+        """A formula referencing row-1 and one referencing same-row must differ."""
+        same_row = normalize_formula("=A5", current_col=3, current_row=5)
+        row_above = normalize_formula("=A4", current_col=3, current_row=5)
+        assert same_row != row_above
+
+    def test_cross_sheet_row_not_relativized(self):
+        """Row numbers inside cross-sheet refs are replaced with # even with current_row."""
+        result = normalize_formula("=Sheet1!$B$38", current_col=3, current_row=11)
+        assert "[" not in result
+        assert "$B#" in result
