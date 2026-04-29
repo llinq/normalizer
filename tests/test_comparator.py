@@ -301,6 +301,35 @@ class TestEmptyRowSkipping:
         unexpected = result.by_type(DivergenceType.UNEXPECTED_FORMULA)
         assert len(unexpected) == 0
 
+    def test_none_template_cell_with_user_formula_not_flagged(self):
+        """User formula in a cell that is None in the template must not raise UNEXPECTED_FORMULA.
+
+        Scenario: template has only 2 data rows with a formula in column B.
+        User dragged the formula down, so B11 (which the template leaves blank) has a formula.
+        The partially-populated row means the whole-row empty check doesn't skip row 11,
+        but the per-cell None guard should suppress the UNEXPECTED_FORMULA flag.
+        """
+        # Row 11 in the template: col A has a value but col B is None
+        template_rows = [
+            ["A", "B"],
+            [1, "=A2*2"],
+            [2, "=A3*2"],
+        ] + [[i, None] for i in range(4, 12)]  # rows 4-11: A has a value, B is None
+        # User dragged the formula down through row 11
+        user_rows = [
+            ["A", "B"],
+            [1, "=A2*2"],
+            [2, "=A3*2"],
+        ] + [[i, f"=A{i+1}*2"] for i in range(4, 12)]
+        result = _compare_from_buffers(
+            make_workbook({"Sheet1": template_rows}),
+            make_workbook({"Sheet1": user_rows}),
+            check_formulas=True,
+            check_data_types=False,
+        )
+        unexpected = result.by_type(DivergenceType.UNEXPECTED_FORMULA)
+        assert len(unexpected) == 0
+
 
 # ---------------------------------------------------------------------------
 # Data-type tests

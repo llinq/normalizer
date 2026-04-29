@@ -265,7 +265,7 @@ def _compare_cells(
                         )
                     continue
 
-                if not tmpl_is_formula and user_is_formula:
+                if not tmpl_is_formula and user_is_formula and tmpl_cell.value is not None:
                     result.divergences.append(
                         Divergence(
                             type=DivergenceType.UNEXPECTED_FORMULA,
